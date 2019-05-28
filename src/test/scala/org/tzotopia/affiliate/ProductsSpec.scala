@@ -1,10 +1,17 @@
 package org.tzotopia.affiliate
 
+import java.io.File
+
+import cats.effect.IO
 import org.scalatest.{FlatSpec, Matchers}
 
 class ProductsSpec extends FlatSpec with Matchers {
-  val lookupKey: String = "a"
-  val products = new CsvProducts
+  private val lookupKey: String = "a"
+  private val appConfig: AppConfig = new AppConfig {
+    override def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]] = IO.fromEither(Left(new RuntimeException("Not used")))
+    override def workdir: IO[File] = IO.pure(File.createTempFile("what", "ever"))
+  }
+  private val products = new CsvProducts(appConfig)
 
   "Grouping products" should "yield empty list if no rows are present" in {
     products.groupProducts(List.empty, lookupKey)() shouldBe List.empty

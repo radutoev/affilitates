@@ -24,6 +24,7 @@ trait AppConfig {
   }
 
   def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]]
+  def workdir: IO[File]
 }
 
 final class PureConfig extends AppConfig {
@@ -34,4 +35,6 @@ final class PureConfig extends AppConfig {
 
   override def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]] =
     config.map(c => c.affiliates.get(name).toRight(new RuntimeException("config values not present")))
+
+  override def workdir: IO[File] = config.map(_.workdir)
 }

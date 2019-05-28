@@ -36,8 +36,8 @@ final class AffiliateRoutes(P: Products, C: AppConfig) {
 }
 
 object Affiliate extends IOApp {
-  val productsService = new CsvProducts
   val config = new PureConfig
+  val productsService = new CsvProducts(config)
 
   override def run(args: List[String]): IO[ExitCode] = {
     BlazeServerBuilder[IO]

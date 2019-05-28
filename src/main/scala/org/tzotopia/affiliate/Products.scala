@@ -14,20 +14,20 @@ trait Products {
   def processAffiliateResource(url: URL, uniqueColumn: String, joinOn: Char): IO[File]
 }
 
-final class CsvProducts extends Products {
+final class CsvProducts(C: AppConfig) extends Products {
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   def processAffiliateResource(url: URL, uniqueColumn: String, joinOn: Char): IO[File] =
     for {
-      _     <- IO.unit
-      gzip  = new File("D:\\downloads\\csv-euri\\test.gz")
-      orig = new File("D:\\downloads\\csv-euri\\test.csv")
+      dir   <- C.workdir
+      gzip  = new File(dir,"test.gz")
+      orig  = new File(dir,"test.csv")
       _     <- Files.readFromUrl(url, gzip)
       _     <- Files.unpack(gzip, orig)
       data  <- parseFile(orig, uniqueColumn, joinOn)
-      dest  =  new File("D:\\downloads\\csv-euri\\test-generated.csv")
+      dest  =  new File(dir,"test-generated.csv")
       count <- Files.writeToCsv(data, dest)
       _     <- IO(println(s"$count bytes copied from ${orig.getPath} to ${dest.getPath}"))
     } yield dest
