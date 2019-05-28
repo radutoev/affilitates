@@ -30,6 +30,9 @@ final class CsvProducts(C: AppConfig) extends Products {
       dest  =  new File(dir,"test-generated.csv")
       count <- Files.writeToCsv(data, dest)
       _     <- IO(println(s"$count bytes copied from ${orig.getPath} to ${dest.getPath}"))
+      _     <- IO(gzip.delete())
+      _     <- IO(orig.delete())
+      _     <- IO(println("Clean up complete"))
     } yield dest
 
   private[affiliate] def parseFile(file: File, uniqueColumn: String, joinOn: Char): IO[List[String]] =
