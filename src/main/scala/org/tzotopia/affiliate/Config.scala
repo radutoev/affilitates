@@ -1,11 +1,13 @@
 package org.tzotopia.affiliate
 
+import java.io.File
+
 import pureconfig.ConfigReader
 
 final case class AffiliateConfig(url: String) extends AnyVal
 
 object Config {
-  implicit val affiliateReader = ConfigReader.fromCursor[AffiliateConfig] { cur =>
+  implicit val affiliateReader: ConfigReader[AffiliateConfig] = ConfigReader.fromCursor[AffiliateConfig] { cur =>
     for {
       objCur <- cur.asObjectCursor
       urlCur <- objCur.atKey("url")
@@ -15,5 +17,6 @@ object Config {
 }
 
 case class Config (
-  affiliates: Map[String, AffiliateConfig]
+  affiliates: Map[String, AffiliateConfig],
+  workdir: File
 )

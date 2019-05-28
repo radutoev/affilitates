@@ -8,20 +8,19 @@ import cats.effect.{ContextShift, IO}
 import cats.implicits._
 import fs2.{io, text}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
 object Products {
-  val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
+  val blockingEc: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   def processAffiliateResource(url: URL, uniqueColumn: String, joinOn: Char): IO[File] =
     for {
       _     <- IO.unit
-//      gzip  = new File("D:\\downloads\\csv-euri\\test.gz")
-//      orig  = new File("D:\\downloads\\csv-euri\\test.csv")
+      gzip  = new File("D:\\downloads\\csv-euri\\test.gz")
       orig = new File("D:\\downloads\\csv-euri\\test.csv")
-//            _     <- Files.readFromUrl(url, gzip)
-//            _     <- Files.unpack(gzip, orig)
+      _     <- Files.readFromUrl(url, gzip)
+      _     <- Files.unpack(gzip, orig)
       data  <- parseFile(orig, uniqueColumn, joinOn)
       dest  =  new File("D:\\downloads\\csv-euri\\test-generated.csv")
       count <- Files.writeToCsv(data, dest)

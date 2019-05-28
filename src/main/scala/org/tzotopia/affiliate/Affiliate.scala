@@ -13,28 +13,25 @@ import pureconfig.generic.auto._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-
 import Config.affiliateReader
+import org.tzotopia.affiliate.Products.processAffiliateResource
 
 object Affiliate extends IOApp {
   object UniqueColumnQueryParamMatcher extends QueryParamDecoderMatcher[String]("uniqueColumn")
   object JoinOnQueryParamMatcher extends QueryParamDecoderMatcher[String]("joinOn")
 
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
-  private val config: Config = pureconfig.loadConfig[Config] match {
-    case Right(conf) => conf
-    case Left(failures) => {
-      println(failures)
-      throw new RuntimeException("Shit")
-    }
-  }
+  private val config: IO[Config] = IO.fromEither(pureconfig.loadConfig[Config] match {
+    case Right(conf) => Right(conf)
+    case Left(failures) => Left(new RuntimeException("Shit"))
+  })
 
   //http://localhost:8080/awin?uniqueColumn=aw_product_id&joinOn=%7C
   private val affiliateRoutes = HttpRoutes.of[IO] {
     case request @ GET -> Root / "awin" :? UniqueColumnQueryParamMatcher(uniqueColumn) +& JoinOnQueryParamMatcher(joinOn) =>
       for {
-        _        <- IO.unit
-        csv      <- Products.processAffiliateResource(new URL(config.affiliates.getOrElse("awin", AffiliateConfig(url = "")).url), uniqueColumn, joinOn.toCharArray.head)
+        conf     <- config.map(c => c.affiliates.get("awin").toRight(new RuntimeException("config values not present")))
+        csv      <- processAffiliateResource(new URL(conf.right.get.url), uniqueColumn, joinOn.toCharArray.head)
         response <- StaticFile.fromFile(csv, blockingEc, Some(request)).getOrElseF(NotFound())
       } yield response.withHeaders(
         Header("Content-Type", "text/csv"),
