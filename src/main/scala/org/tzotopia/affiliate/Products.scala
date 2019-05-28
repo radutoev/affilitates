@@ -8,10 +8,15 @@ import cats.effect.{ContextShift, IO}
 import cats.implicits._
 import fs2.{io, text}
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import scala.concurrent.ExecutionContext
 
-object Products {
-  val blockingEc: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
+trait Products {
+  def processAffiliateResource(url: URL, uniqueColumn: String, joinOn: Char): IO[File]
+}
+
+final class CsvProducts extends Products {
+  private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
+
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   def processAffiliateResource(url: URL, uniqueColumn: String, joinOn: Char): IO[File] =
@@ -27,7 +32,7 @@ object Products {
       _     <- IO(println(s"$count bytes copied from ${orig.getPath} to ${dest.getPath}"))
     } yield dest
 
-  def parseFile(file: File, uniqueColumn: String, joinOn: Char): IO[List[String]] =
+  private[affiliate] def parseFile(file: File, uniqueColumn: String, joinOn: Char): IO[List[String]] =
     io.file.readAll[IO](file.toPath, blockingEc, 4096)
       .through(text.utf8Decode)
       .through(Fs2Csv.parse(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
@@ -35,8 +40,8 @@ object Products {
       .compile
       .toList
       //out of the stream world.
-      .map(Products.groupProducts(_, uniqueColumn)(joinOn))
-      .map(Products.transformToCsv)
+      .map(groupProducts(_, uniqueColumn)(joinOn))
+      .map(transformToCsv)
 
   private[affiliate] def groupProducts(productRows: List[Option[Map[String, String]]], lookup: String)(joinOn: Char = '|'): List[Map[String, String]] =
     productRows
