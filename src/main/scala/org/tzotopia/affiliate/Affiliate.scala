@@ -9,11 +9,12 @@ import org.http4s.{Header, HttpRoutes, StaticFile}
 import org.http4s.implicits._
 import org.http4s.dsl.io._
 import org.http4s.server.blaze.BlazeServerBuilder
-
 import pureconfig.generic.auto._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+
+import Config.affiliateReader
 
 object Affiliate extends IOApp {
   object UniqueColumnQueryParamMatcher extends QueryParamDecoderMatcher[String]("uniqueColumn")
@@ -22,7 +23,10 @@ object Affiliate extends IOApp {
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
   private val config: Config = pureconfig.loadConfig[Config] match {
     case Right(conf) => conf
-    case Left(failures) => throw new RuntimeException("Shit")
+    case Left(failures) => {
+      println(failures)
+      throw new RuntimeException("Shit")
+    }
   }
 
   //http://localhost:8080/awin?uniqueColumn=aw_product_id&joinOn=%7C
