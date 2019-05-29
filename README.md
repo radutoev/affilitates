@@ -2,7 +2,7 @@ Todo
 
 To deploy at - 116.203.128.9 / WCeTVARtrH3EsiTkXcCU
 
-[ ] de ce se offsetuieste randu
+[ ] de ce se offsetuieste randu??
  
 [ ] sa adaug linkurile de la radu
 
@@ -12,6 +12,6 @@ To deploy at - 116.203.128.9 / WCeTVARtrH3EsiTkXcCU
 
 [ ] delete generated csv  
 
-[ ] specify columns that will be grouped
+[x] specify columns that will be grouped
 
 [ ] different parsing for affilinet (maybe replace the joined columns with our delimiter)

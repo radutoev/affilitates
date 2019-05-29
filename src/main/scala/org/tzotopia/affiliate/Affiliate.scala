@@ -17,16 +17,24 @@ import scala.concurrent.duration._
 final class AffiliateRoutes(P: Products, C: AppConfig) {
   object UniqueColumnQueryParamMatcher extends QueryParamDecoderMatcher[String]("uniqueColumn")
   object JoinOnQueryParamMatcher extends QueryParamDecoderMatcher[String]("joinOn")
+  object ColumnsToJoinQueryParamMatcher extends QueryParamDecoderMatcher[String](name = "columnsToJoin")
 
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
   private implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  //http://localhost:8080/awin?uniqueColumn=aw_product_id&joinOn=%7C
+  //http://localhost:8080/awin?uniqueColumn=merchant_image_url&joinOn=%7C&columnsToJoin=custom_1
   def routes: Kleisli[IO, Request[IO], Response[IO]] = HttpRoutes.of[IO] {
-    case request @ GET -> Root / "awin" :? UniqueColumnQueryParamMatcher(uniqueColumn) +& JoinOnQueryParamMatcher(joinOn) =>
+    case request @ GET -> Root / "awin" :? UniqueColumnQueryParamMatcher(uniqueColumn)
+      +& JoinOnQueryParamMatcher(joinOn)
+      +& ColumnsToJoinQueryParamMatcher(columnsToJoin) =>
       for {
         conf     <- C.affiliateConfig("awin")
-        csv      <- P.processAffiliateResource(new URL(conf.right.get.url), uniqueColumn, joinOn.toCharArray.head)
+        csv      <- P.processAffiliateResource (
+          new URL(conf.right.get.url),
+          uniqueColumn,
+          columnsToJoin.split(",").map(_.toLowerCase).toVector,
+          joinOn.toCharArray.head
+        )
         response <- StaticFile.fromFile(csv, blockingEc, Some(request)).getOrElseF(NotFound())
       } yield response.withHeaders(
         Header("Content-Type", "text/csv"),

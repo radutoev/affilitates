@@ -11,7 +11,10 @@ import fs2.{io, text}
 import scala.concurrent.ExecutionContext
 
 trait Products {
-  def processAffiliateResource(url: URL, uniqueColumn: String, joinOn: Char): IO[File]
+  def processAffiliateResource(url: URL,
+                               uniqueColumn: String,
+                               columnsToJoin: Vector[String],
+                               joinOn: Char): IO[File]
 }
 
 final class CsvProducts(C: AppConfig) extends Products {
@@ -19,14 +22,14 @@ final class CsvProducts(C: AppConfig) extends Products {
 
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  def processAffiliateResource(url: URL, uniqueColumn: String, joinOn: Char): IO[File] =
+  def processAffiliateResource(url: URL, uniqueColumn: String, columnsToJoin: Vector[String], joinOn: Char): IO[File] =
     for {
       dir   <- C.workdir
       gzip  = new File(dir,"test.gz")
       orig  = new File(dir,"test.csv")
       _     <- Files.readFromUrl(url, gzip)
       _     <- Files.unpack(gzip, orig)
-      data  <- parseFile(orig, uniqueColumn, joinOn)
+      data  <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
       dest  =  new File(dir,"test-generated.csv")
       count <- Files.writeToCsv(data, dest)
       _     <- IO(println(s"$count bytes copied from ${orig.getPath} to ${dest.getPath}"))
@@ -35,7 +38,7 @@ final class CsvProducts(C: AppConfig) extends Products {
       _     <- IO(println("Clean up complete"))
     } yield dest
 
-  private[affiliate] def parseFile(file: File, uniqueColumn: String, joinOn: Char): IO[List[String]] =
+  private[affiliate] def parseFile(file: File, uniqueColumn: String, columnsToJoin: Vector[String], joinOn: Char): IO[List[String]] =
     io.file.readAll[IO](file.toPath, blockingEc, 4096)
       .through(text.utf8Decode)
       .through(Fs2Csv.parse(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
@@ -43,10 +46,12 @@ final class CsvProducts(C: AppConfig) extends Products {
       .compile
       .toList
       //out of the stream world.
-      .map(groupProducts(_, uniqueColumn)(joinOn))
+      .map(groupProducts(_, uniqueColumn)(columnsToJoin)(joinOn))
       .map(transformToCsv)
 
-  private[affiliate] def groupProducts(productRows: List[Option[Map[String, String]]], lookup: String)(joinOn: Char = '|'): List[Map[String, String]] =
+  private[affiliate] def groupProducts(productRows: List[Option[Map[String, String]]], lookup: String)
+                                      (columnsToGroup: Vector[String] = Vector.empty)
+                                      (joinOn: Char = '|'): List[Map[String, String]] =
     productRows
       .filter(_.isDefined)
       .map(_.get)
@@ -56,14 +61,19 @@ final class CsvProducts(C: AppConfig) extends Products {
         case(key, list) => (key, list.reduce((m1, m2) => m1.map {
           case(header, value) =>
             val secondValue = m2.getOrElse(header, "")
-            if(secondValue.nonEmpty) {
-              if(value.nonEmpty) {
-                if(secondValue != value) (header, s"$value$joinOn$secondValue")
-                else (header, value)
-              }
-              else (header, secondValue)
-            } else {
+
+            if(columnsToGroup.nonEmpty && !columnsToGroup.contains(header.toLowerCase)) {
               (header, value)
+            } else {
+              if(secondValue.nonEmpty) {
+                if(value.nonEmpty) {
+                  if(secondValue != value) (header, s"$value$joinOn$secondValue")
+                  else (header, value)
+                }
+                else (header, secondValue)
+              } else {
+                (header, value)
+              }
             }
         }))
       }.values.toList
