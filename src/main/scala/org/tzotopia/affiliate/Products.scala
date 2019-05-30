@@ -25,17 +25,16 @@ final class CsvProducts(C: AppConfig) extends Products {
   def processAffiliateResource(url: URL, uniqueColumn: String, columnsToJoin: Vector[String], joinOn: Char): IO[File] =
     for {
       dir   <- C.workdir
-      gzip  = new File(dir,"test.gz")
+//      gzip  = new File(dir,"test.gz")
       orig  = new File(dir,"test.csv")
-      _     <- Files.readFromUrl(url, gzip)
-      _     <- Files.unpack(gzip, orig)
+//      _     <- Files.readFromUrl(url, gzip)
+//      _     <- Files.unpack(gzip, orig)
       data  <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
       dest  =  new File(dir,"test-generated.csv")
       count <- Files.writeToCsv(data, dest)
-      _     <- IO(println(s"$count bytes copied from ${orig.getPath} to ${dest.getPath}"))
-      _     <- IO(gzip.delete())
-      _     <- IO(orig.delete())
-      _     <- IO(println("Clean up complete"))
+//      _     <- IO(gzip.delete())
+//      _     <- IO(orig.delete())
+      _     <- IO(println("Cleanup complete"))
     } yield dest
 
   private[affiliate] def parseFile(file: File, uniqueColumn: String, columnsToJoin: Vector[String], joinOn: Char): IO[List[String]] =
@@ -81,8 +80,17 @@ final class CsvProducts(C: AppConfig) extends Products {
   private[affiliate] def transformToCsv(listOfProductsWithHeaders: List[Map[String, String]]): List[String] = {
     val keys = listOfProductsWithHeaders.head.keySet.toList
 
-    keys.mkString(",") :: listOfProductsWithHeaders.map(rowWithHeader =>
-       keys map { key => rowWithHeader.getOrElse(key, "") } mkString ","
-    )
+    keys.mkString(",") :: listOfProductsWithHeaders.map(rowWithHeader => {
+      keys
+        .map { key => rowWithHeader.getOrElse(key, "") }
+        .map { column =>
+          if(column.contains(",")) {
+            column replaceAll("[,]", "")
+          } else {
+            column
+          }
+        }
+        .mkString(",")
+    })
   }
 }

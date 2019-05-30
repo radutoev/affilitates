@@ -2,7 +2,7 @@ Todo
 
 To deploy at - 116.203.128.9 / WCeTVARtrH3EsiTkXcCU
 
-[ ] de ce se offsetuieste randu??
+[x/2] de ce se offsetuieste randu -> problema e la scriere, sunt texte care continu ',' si '"' ca delimitatori si se fute treaba p acolo
  
 [ ] sa adaug linkurile de la radu
 
