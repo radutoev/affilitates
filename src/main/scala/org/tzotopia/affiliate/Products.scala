@@ -2,16 +2,19 @@ package org.tzotopia.affiliate
 
 import java.io.File
 import java.net.URL
-import java.util.concurrent.Executors
+import java.util.UUID
+import java.util.concurrent.{Executors, TimeUnit}
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.{Clock, ContextShift, IO}
 import cats.implicits._
 import fs2.{io, text}
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.TimeUnit
 
 trait Products {
-  def processAffiliateResource(url: URL,
+  def processAffiliateResource(affiliateName: String,
+                               url: URL,
                                uniqueColumn: String,
                                columnsToJoin: Vector[String],
                                joinOn: Char): IO[File]
@@ -22,19 +25,26 @@ final class CsvProducts(C: AppConfig) extends Products {
 
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  def processAffiliateResource(url: URL, uniqueColumn: String, columnsToJoin: Vector[String], joinOn: Char): IO[File] =
+  def processAffiliateResource(affiliateName: String,
+                               url: URL,
+                               uniqueColumn: String,
+                               columnsToJoin: Vector[String],
+                               joinOn: Char): IO[File] =
     for {
-      dir   <- C.workdir
-//      gzip  = new File(dir,"test.gz")
-      orig  = new File(dir,"test.csv")
+      dir       <- C.workdir
+      outputDir <- C.outputDir
+      name      <- IO("affilinet_products_1062_858833")
+//      name      <- IO(UUID.randomUUID().toString)
+//      gzip      = new File(dir,s"${name}.gz")
+      orig      = new File(dir,s"${name}.csv")
 //      _     <- Files.readFromUrl(url, gzip)
 //      _     <- Files.unpack(gzip, orig)
-      data  <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
-      dest  =  new File(dir,"test-generated.csv")
-      count <- Files.writeToCsv(data, dest)
+      data      <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
+      dest      =  new File(outputDir,s"${name}.csv")
+      count     <- Files.writeToCsv(data, dest)
 //      _     <- IO(gzip.delete())
 //      _     <- IO(orig.delete())
-      _     <- IO(println("Cleanup complete"))
+      _         <- IO(println("Cleanup complete"))
     } yield dest
 
   private[affiliate] def parseFile(file: File, uniqueColumn: String, columnsToJoin: Vector[String], joinOn: Char): IO[List[String]] =

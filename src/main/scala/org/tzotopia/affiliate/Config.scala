@@ -11,7 +11,8 @@ final case class AffiliateConfig(url: String) extends AnyVal
 
 final case class Config (
   affiliates: Map[String, AffiliateConfig],
-  workdir: File
+  workdir: File,
+  outputDir: File
 )
 
 trait AppConfig {
@@ -25,6 +26,7 @@ trait AppConfig {
 
   def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]]
   def workdir: IO[File]
+  def outputDir: IO[File]
 }
 
 final class PureConfig extends AppConfig {
@@ -37,4 +39,6 @@ final class PureConfig extends AppConfig {
     config.map(c => c.affiliates.get(name).toRight(new RuntimeException("config values not present")))
 
   override def workdir: IO[File] = config.map(_.workdir)
+
+  override def outputDir: IO[File] = config.map(_.outputDir)
 }

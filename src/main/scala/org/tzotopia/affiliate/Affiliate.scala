@@ -22,14 +22,15 @@ final class AffiliateRoutes(P: Products, C: AppConfig) {
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
   private implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  //http://localhost:8080/awin?uniqueColumn=merchant_image_url&joinOn=%7C&columnsToJoin=custom_1
+  //http://localhost:8080/<affiliate_name>?uniqueColumn=merchant_image_url&joinOn=%7C&columnsToJoin=custom_1
   def routes: Kleisli[IO, Request[IO], Response[IO]] = HttpRoutes.of[IO] {
-    case request @ GET -> Root / "awin" :? UniqueColumnQueryParamMatcher(uniqueColumn)
+    case request @ GET -> Root / affiliateName :? UniqueColumnQueryParamMatcher(uniqueColumn)
       +& JoinOnQueryParamMatcher(joinOn)
       +& ColumnsToJoinQueryParamMatcher(columnsToJoin) =>
       for {
-        conf     <- C.affiliateConfig("awin")
+        conf     <- C.affiliateConfig(affiliateName)
         csv      <- P.processAffiliateResource (
+          affiliateName,
           new URL(conf.right.get.url),
           uniqueColumn,
           columnsToJoin.split(",").map(_.toLowerCase).toVector,
@@ -38,7 +39,7 @@ final class AffiliateRoutes(P: Products, C: AppConfig) {
         response <- StaticFile.fromFile(csv, blockingEc, Some(request)).getOrElseF(NotFound())
       } yield response.withHeaders(
         Header("Content-Type", "text/csv"),
-        Header("Content-Disposition", "attachment; filename=\"awin.csv\"")
+        Header("Content-Disposition", "attachment; filename=\"" + affiliateName + ".csv\"")
       )
   }.orNotFound
 }
