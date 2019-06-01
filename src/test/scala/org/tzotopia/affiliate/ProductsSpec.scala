@@ -10,6 +10,7 @@ class ProductsSpec extends FlatSpec with Matchers {
   private val appConfig: AppConfig = new AppConfig {
     override def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]] = IO.fromEither(Left(new RuntimeException("Not used")))
     override def workdir: IO[File] = IO.pure(File.createTempFile("what", "ever"))
+    override def outputDir: IO[File] = IO.pure(File.createTempFile("what", "ever2"))
   }
   private val products = new CsvProducts(appConfig)
 
@@ -61,5 +62,10 @@ class ProductsSpec extends FlatSpec with Matchers {
     val input = List(Map("a" -> "one", "b" -> "", "c" -> "two"), Map("a" -> "three", "b" -> "four", "c" -> "five"))
 
     products.transformToCsv(input) should contain allOf ("a,b,c", "one,,two", "three,four,five")
+  }
+
+  "Column transformations" should "apply join operator if comma is present" in {
+    val colValue: String = "44M,44 2/3M,42 2/3M,47 1/3M,43 1/3M,41 1/3M,46M,45 1/3M,42M"
+    products.applyColumnTransformations(colValue, '|') should equal ("44M|44 2/3M|42 2/3M|47 1/3M|43 1/3M|41 1/3M|46M|45 1/3M|42M")
   }
 }

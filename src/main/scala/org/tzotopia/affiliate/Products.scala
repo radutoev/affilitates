@@ -76,7 +76,7 @@ final class CsvProducts(C: AppConfig) extends Products {
             } else {
               if(secondValue.nonEmpty) {
                 if(value.nonEmpty) {
-                  if(secondValue != value) (header, s"$value$joinOn$secondValue")
+                  if(secondValue != value) (header, s"$value$joinOn${applyColumnTransformations(secondValue, joinOn)}")
                   else (header, value)
                 }
                 else (header, secondValue)
@@ -86,6 +86,14 @@ final class CsvProducts(C: AppConfig) extends Products {
             }
         }))
       }.values.toList
+
+  /**
+    * If further transformations are required revisit the design of the tx steps so as not to accumulate too many
+    * method params.
+    */
+  private[affiliate] def applyColumnTransformations(colValue: String, joinOn: Char): String =
+    colValue replaceAll("[,]", joinOn.toString)
+
 
   private[affiliate] def transformToCsv(listOfProductsWithHeaders: List[Map[String, String]]): List[String] = {
     val keys = listOfProductsWithHeaders.head.keySet.toList
