@@ -12,3 +12,7 @@ strings
     }
   })
 
+
+val regex = "(\\d+)[M]".r
+"44M|42.5M".replaceAll("(\\d+)([M])", "$1")
+

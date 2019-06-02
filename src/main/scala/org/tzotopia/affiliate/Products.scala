@@ -9,6 +9,7 @@ import cats.effect.{Clock, ContextShift, IO}
 import cats.implicits._
 import fs2.{io, text}
 
+import scala.collection.immutable.TreeSet
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.TimeUnit
 
@@ -76,7 +77,8 @@ final class CsvProducts(C: AppConfig) extends Products {
             } else {
               if(secondValue.nonEmpty) {
                 if(value.nonEmpty) {
-                  if(secondValue != value) (header, s"$value$joinOn${applyColumnTransformations(secondValue, joinOn)}")
+                  val transformed = uniqueValues(makeNrColumn(replaceCommasWithDelimiter(secondValue, joinOn)), joinOn.toString)
+                  if(secondValue != value) (header, s"$value$joinOn$transformed")
                   else (header, value)
                 }
                 else (header, secondValue)
@@ -87,13 +89,14 @@ final class CsvProducts(C: AppConfig) extends Products {
         }))
       }.values.toList
 
-  /**
-    * If further transformations are required revisit the design of the tx steps so as not to accumulate too many
-    * method params.
-    */
-  private[affiliate] def applyColumnTransformations(colValue: String, joinOn: Char): String =
+  private[affiliate] val replaceCommasWithDelimiter: (String, Char) => String = (colValue, joinOn) =>
     colValue replaceAll("[,]", joinOn.toString)
 
+  private[affiliate] val makeNrColumn: String => String = colValue =>
+    colValue replaceAll ("\\d[/]\\d[M]", "") replaceAll("[ ]", "") replaceAll("(\\d+)([M])", "$1")
+
+  private [affiliate] val uniqueValues: (String, String) => String = (colValue, sep) =>
+    colValue.split(s"[$sep]").toSet.mkString(sep)
 
   private[affiliate] def transformToCsv(listOfProductsWithHeaders: List[Map[String, String]]): List[String] = {
     val keys = listOfProductsWithHeaders.head.keySet.toList

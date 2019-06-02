@@ -66,6 +66,16 @@ class ProductsSpec extends FlatSpec with Matchers {
 
   "Column transformations" should "apply join operator if comma is present" in {
     val colValue: String = "44M,44 2/3M,42 2/3M,47 1/3M,43 1/3M,41 1/3M,46M,45 1/3M,42M"
-    products.applyColumnTransformations(colValue, '|') should equal ("44M|44 2/3M|42 2/3M|47 1/3M|43 1/3M|41 1/3M|46M|45 1/3M|42M")
+    products.replaceCommasWithDelimiter(colValue, '|') should equal ("44M|44 2/3M|42 2/3M|47 1/3M|43 1/3M|41 1/3M|46M|45 1/3M|42M")
+  }
+
+  it should "make all column values integers" in {
+    val input = "44M|44 2/3M|42 2/3M|47 1/3M|43 1/3M|41 1/3M|46M|45 1/3M|42M"
+    products.makeNrColumn(input) should equal ("44|44|42|47|43|41|46|45|42")
+  }
+
+  it should "ensure value uniqueness" in {
+    val input = "44|44|42.5|47|43|41.2|46|45|42"
+    products.uniqueValues(input, "|").split("[|]") should contain allOf ("44", "42.5", "47", "43", "41.2", "46", "45", "42")
   }
 }
