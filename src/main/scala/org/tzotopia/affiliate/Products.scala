@@ -34,18 +34,15 @@ final class CsvProducts(C: AppConfig) extends Products {
     for {
       dir       <- C.workdir
       outputDir <- C.outputDir
-      name      <- IO("affilinet_products_1062_858833")
-//      name      <- IO(UUID.randomUUID().toString)
-//      gzip      = new File(dir,s"${name}.gz")
+      name      <- IO(UUID.randomUUID().toString)
+      gzip      = new File(dir,s"${name}.gz")
       orig      = new File(dir,s"${name}.csv")
-//      _     <- Files.readFromUrl(url, gzip)
-//      _     <- Files.unpack(gzip, orig)
+      _         <- Files.readFromUrl(url, gzip)
+      _         <- Files.unpack(gzip, orig)
       data      <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
       dest      =  new File(outputDir,s"${name}.csv")
       count     <- Files.writeToCsv(data, dest)
-//      _     <- IO(gzip.delete())
-//      _     <- IO(orig.delete())
-      _         <- IO(println("Cleanup complete"))
+      _         <- cleanupWorkDir(gzip, orig)
     } yield dest
 
   private[affiliate] def parseFile(file: File, uniqueColumn: String, columnsToJoin: Vector[String], joinOn: Char): IO[List[String]] =
@@ -113,5 +110,11 @@ final class CsvProducts(C: AppConfig) extends Products {
         }
         .mkString(",")
     })
+  }
+
+  private def cleanupWorkDir(gzip: File, csv: File): IO[Unit] = IO {
+    gzip.delete()
+    csv.delete()
+    println("Cleanup complete")
   }
 }
