@@ -22,7 +22,6 @@ final class AffiliateRoutes(P: Products, C: AppConfig) {
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
   private implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  //http://localhost:8080/<affiliate_name>?uniqueColumn=merchant_image_url&joinOn=%7C&columnsToJoin=custom_1
   def routes: Kleisli[IO, Request[IO], Response[IO]] = HttpRoutes.of[IO] {
     case request @ GET -> Root / affiliateName :? UniqueColumnQueryParamMatcher(uniqueColumn)
       +& JoinOnQueryParamMatcher(joinOn)

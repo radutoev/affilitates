@@ -32,7 +32,7 @@ trait AppConfig {
 final class PureConfig extends AppConfig {
   private val config: IO[Config] = IO.fromEither(pureconfig.loadConfig[Config] match {
     case Right(conf) => Right(conf)
-    case Left(failures) => Left(new RuntimeException("Shit"))
+    case Left(failures) => Left(new RuntimeException(failures.head.description))
   })
 
   override def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]] =

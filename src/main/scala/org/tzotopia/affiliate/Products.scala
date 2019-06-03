@@ -65,35 +65,34 @@ final class CsvProducts(C: AppConfig) extends Products {
       .filter(_.contains(lookup)) //implicitly skip over items with no key.
       .groupBy(_ (lookup))
       .map {
-        case(key, list) => (key, list.reduce((m1, m2) => m1.map {
-          case(header, value) =>
-            val secondValue = m2.getOrElse(header, "")
-
-            if(columnsToGroup.nonEmpty && !columnsToGroup.contains(header.toLowerCase)) {
-              (header, value)
-            } else {
-              if(secondValue.nonEmpty) {
-                if(value.nonEmpty) {
-                  val transformed = uniqueValues(makeNrColumn(replaceCommasWithDelimiter(secondValue, joinOn)), joinOn.toString)
-                  if(secondValue != value) (header, s"$value$joinOn$transformed")
-                  else (header, value)
-                }
-                else (header, secondValue)
+        case(key, list) =>
+          (key, list.fold(Map.empty)((m1, m2) => m2 map {
+            case (header, value) =>
+              val prevValues = m1.getOrElse(header, "")
+              if(columnsToGroup.nonEmpty && !columnsToGroup.contains(header.toLowerCase)) {
+                (header, if(prevValues.nonEmpty) prevValues else value)
               } else {
-                (header, value)
+                val transformed = applyValueTransformations(value, joinOn.toString)
+                (header, if(prevValues.isEmpty) transformed else prevValues + joinOn.toString + transformed)
               }
-            }
-        }))
-      }.values.toList
+          }))
+      }
+      .mapValues { _ map {
+        case (key, joined) => (key, uniqueValues(joined, joinOn.toString))
+      }}.values.toList
 
-  private[affiliate] val replaceCommasWithDelimiter: (String, Char) => String = (colValue, joinOn) =>
-    colValue replaceAll("[,]", joinOn.toString)
 
   private[affiliate] val makeNrColumn: String => String = colValue =>
     colValue replaceAll ("\\d[/]\\d[M]", "") replaceAll("[ ]", "") replaceAll("\\b(\\d{1,3})([a-zA-Z])\\b", "$1")
 
   private [affiliate] val uniqueValues: (String, String) => String = (colValue, sep) =>
     colValue.split(s"[$sep]").toSet.mkString(sep)
+
+  private[affiliate] val applyValueTransformations: (String, String) => String = (colValue, joinOn) => {
+    makeNrColumn (
+      colValue replaceAll ("[,]", joinOn)
+    ) replaceAll("[/]", joinOn)
+  }
 
   private[affiliate] def transformToCsv(listOfProductsWithHeaders: List[Map[String, String]]): List[String] = {
     val keys = listOfProductsWithHeaders.head.keySet.toList

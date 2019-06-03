@@ -3,16 +3,16 @@ val strings = row.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
 //List("test", "Das Signature, bla", "test1")
 //  .mkString(",")
-strings
-  .reduce((left, right) => {
-    if(right contains ",") {
-      left + "," + "\"" + right + "\""
-    } else {
-      left + "," + right
-    }
-  })
 
 
-val regex = "(\\d+)[M]".r
-"44M|42.5M".replaceAll("(\\d+)([M])", "$1")
+List(Map("size" -> "33"),
+     Map("size" -> "29/32"),
+     Map("size" -> "34")).fold(Map.empty)((m1, m2) => {
+  m2 map {
+    case (key, value) =>
+      val transformed = value replaceAll("/", "|")
+      val prevValues = m1.getOrElse(key, "")
+      (key, if(prevValues.isEmpty) transformed else prevValues + "|" + transformed)
+  }
+})
 
