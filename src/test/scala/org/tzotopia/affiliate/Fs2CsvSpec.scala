@@ -26,23 +26,23 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
     )
   }
 
-  it should "error on bad row alignment" in {
-    val csv =
-      """a,b,c
-        |1,2,3
-        |4,5
-      """.stripMargin
-
-    a[HeaderSizeMismatch] shouldBe thrownBy {
-      Stream
-        .emit(csv)
-        .covary[Fallible]
-        .through(Fs2Csv.parse(","))
-        .toVector
-        .right
-        .value
-    }
-  }
+//  it should "error on bad row alignment" in {
+//    val csv =
+//      """a,b,c
+//        |1,2,3
+//        |4,5
+//      """.stripMargin
+//
+//    a[HeaderSizeMismatch] shouldBe thrownBy {
+//      Stream
+//        .emit(csv)
+//        .covary[Fallible]
+//        .through(Fs2Csv.parse(","))
+//        .toVector
+//        .right
+//        .value
+//    }
+//  }
 
   it should "handle rows with leading empty columns" in {
     val rows =

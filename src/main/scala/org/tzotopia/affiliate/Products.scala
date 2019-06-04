@@ -3,15 +3,13 @@ package org.tzotopia.affiliate
 import java.io.File
 import java.net.URL
 import java.util.UUID
-import java.util.concurrent.{Executors, TimeUnit}
+import java.util.concurrent.Executors
 
-import cats.effect.{Clock, ContextShift, IO}
+import cats.effect.{ContextShift, IO}
 import cats.implicits._
 import fs2.{io, text}
 
-import scala.collection.immutable.TreeSet
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.TimeUnit
 
 trait Products {
   def processAffiliateResource(affiliateName: String,
