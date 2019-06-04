@@ -51,7 +51,7 @@ object Affiliate extends IOApp {
     BlazeServerBuilder[IO]
       .withIdleTimeout(1 minute)
       .withResponseHeaderTimeout(1 minute)
-      .bindHttp(8080, "0.0.0.0")
+      .bindHttp(80, "0.0.0.0")
       .withHttpApp(new AffiliateRoutes(productsService, config).routes)
       .resource
       .use(_ => IO.never)

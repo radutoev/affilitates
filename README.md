@@ -1,17 +1,11 @@
 Todo
 
-To deploy at - 116.203.128.9 / WCeTVARtrH3EsiTkXcCU
+[x] test from my computer, see if cors is required
 
-[x/2] de ce se offsetuieste randu -> problema e la scriere, sunt texte care continu ',' si '"' ca delimitatori si se fute treaba p acolo
- 
-[x] sa adaug linkurile de la radu
+[x] deploy on VM 
 
-[x] config pt foldere de download
+[ ] map out all links
 
-[x] cleanup zips&files.
+[ ] make any php changes if needed 
 
-[ ] delete generated csv  
-
-[x] specify columns that will be grouped
-
-[x] different parsing for affilinet (maybe replace the joined columns with our delimiter)
+[ ] delete generated csv - crontab with script  
