@@ -50,7 +50,7 @@ final class CsvProducts(C: AppConfig) extends Products {
                                    joinOn: Char): IO[List[String]] =
     io.file.readAll[IO](file.toPath, blockingEc, 4096)
       .through(text.utf8Decode)
-      .through(Fs2Csv.parse(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")(Option.empty[Columns]))
+      .through(Fs2Csv.parse(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")(columnsToSelect(uniqueColumn, columnsToJoin)))
       .noneTerminate
       .compile
       .toList
@@ -112,6 +112,12 @@ final class CsvProducts(C: AppConfig) extends Products {
         .mkString(",")
     })
   }
+
+  private[affiliate] val columnsToSelect: (String, Vector[String]) => Option[Columns] = (uniqueCol, columnsToJoin) =>
+    columnsToJoin match {
+      case vector if vector.nonEmpty => Some(uniqueCol +: vector)
+      case _ => None
+    }
 
   private def cleanupWorkDir(gzip: File, csv: File): IO[Unit] = IO {
     gzip.delete()

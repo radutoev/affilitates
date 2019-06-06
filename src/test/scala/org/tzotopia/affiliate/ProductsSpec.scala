@@ -79,13 +79,11 @@ class ProductsSpec extends FlatSpec with Matchers {
     products.uniqueValues(input, "|").split("[|]") should contain allOf ("44", "42.5", "47", "43", "41.2", "46", "45", "42")
   }
 
-  val columnsToSelect: (String, Vector[String]) => Option[Columns] = (uniqueCol, columnsToJoin) =>
-    columnsToJoin match {
-      case vector => None
-      case IndexedSeq() => None
-    }
-
   "Columns selector" should "not form if no join columns are defined" in {
-    columnsToSelect("a", Vector.empty) should equal (None)
+    products.columnsToSelect("a", Vector.empty) should equal (None)
+  }
+
+  it should "return columns if both join columns and unique key are provided" in {
+    products.columnsToSelect("a", Vector("b", "c")) should equal (Some(Vector("a", "b", "c")))
   }
 }
