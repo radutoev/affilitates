@@ -8,6 +8,7 @@ import java.util.concurrent.Executors
 import cats.effect.{ContextShift, IO}
 import cats.implicits._
 import fs2.{io, text}
+import org.tzotopia.affiliate.Fs2Csv.Columns
 
 import scala.concurrent.ExecutionContext
 
@@ -43,10 +44,13 @@ final class CsvProducts(C: AppConfig) extends Products {
       _         <- cleanupWorkDir(gzip, orig)
     } yield dest
 
-  private[affiliate] def parseFile(file: File, uniqueColumn: String, columnsToJoin: Vector[String], joinOn: Char): IO[List[String]] =
+  private[affiliate] def parseFile(file: File,
+                                   uniqueColumn: String,
+                                   columnsToJoin: Vector[String],
+                                   joinOn: Char): IO[List[String]] =
     io.file.readAll[IO](file.toPath, blockingEc, 4096)
       .through(text.utf8Decode)
-      .through(Fs2Csv.parse(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
+      .through(Fs2Csv.parse(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")(Option.empty[Columns]))
       .noneTerminate
       .compile
       .toList

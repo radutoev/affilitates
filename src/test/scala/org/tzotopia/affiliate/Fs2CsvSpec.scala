@@ -2,7 +2,7 @@ package org.tzotopia.affiliate
 
 import fs2.{Fallible, Stream}
 import org.scalatest.{EitherValues, FlatSpec, Matchers}
-import org.tzotopia.affiliate.Fs2Csv.HeaderSizeMismatch
+import org.tzotopia.affiliate.Fs2Csv.{Columns, HeaderSizeMismatch}
 
 class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
   behavior of "parse"
@@ -16,7 +16,7 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
     val csvMaps = Stream
       .emit(csv)
       .covary[Fallible]
-      .through(Fs2Csv.parse(","))
+      .through(Fs2Csv.parse(",")(Option.empty[Columns]))
       .toVector
       .right
       .value
@@ -53,7 +53,7 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
       Stream
         .emit(rows)
         .covary[Fallible]
-        .through(Fs2Csv.parse("\t"))
+        .through(Fs2Csv.parse("\t")(Option.empty[Columns]))
         .toVector
         .right
         .value
@@ -68,7 +68,7 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
       Stream
         .emit(rows)
         .covary[Fallible]
-        .through(Fs2Csv.parse("\t"))
+        .through(Fs2Csv.parse("\t")(Option.empty[Columns]))
         .toVector
         .right
         .value
@@ -83,7 +83,7 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
     val csvMap = Stream
       .emit(csv)
       .covary[Fallible]
-      .through(Fs2Csv.parse(","))
+      .through(Fs2Csv.parse(",")(Option.empty[Columns]))
       .toVector
       .right
       .value

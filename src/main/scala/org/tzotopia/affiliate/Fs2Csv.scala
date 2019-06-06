@@ -3,16 +3,18 @@ package org.tzotopia.affiliate
 import fs2.{Pipe, RaiseThrowable, text}
 
 object Fs2Csv {
-  def parse[F[_]: RaiseThrowable](sep: String): Pipe[F, String, Map[String, String]] =
-    parse(sep, identity)
+  type Columns = Array[String]
 
-  def parseLenient[F[_], I](sep: String): Pipe[F, String, Either[Throwable, Map[String, String]]] =
-    parseLenient(sep, identity)
+  def parse[F[_]: RaiseThrowable](sep: String)(columns: Option[Columns]): Pipe[F, String, Map[String, String]] =
+    parse(sep, columns, identity)
 
-  def parse[F[_]: RaiseThrowable, I](sep: String, convert: I => String): Pipe[F, I, Map[String, String]] =
-    csvBytes => parseLenient(sep, convert)(csvBytes).rethrow
+  def parseLenient[F[_], I](sep: String, columns: Option[Columns]): Pipe[F, String, Either[Throwable, Map[String, String]]] =
+    parseLenient(sep, columns, identity)
 
-  def parseLenient[F[_], I](sep: String, convert: I => String): Pipe[F, I, Either[Throwable, Map[String, String]]] =
+  def parse[F[_]: RaiseThrowable, I](sep: String, columns: Option[Columns], convert: I => String): Pipe[F, I, Map[String, String]] =
+    csvBytes => parseLenient(sep, columns, convert)(csvBytes).rethrow
+
+  def parseLenient[F[_], I](sep: String, columns: Option[Columns], convert: I => String): Pipe[F, I, Either[Throwable, Map[String, String]]] =
     csvBytes =>
       csvBytes
         .map(convert(_))

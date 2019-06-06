@@ -4,8 +4,6 @@ Todo
 
 [x] deploy on VM 
 
-[ ] map out all links
+[x] map out all links
 
-[ ] make any php changes if needed 
-
-[ ] delete generated csv - crontab with script  
+[ ] delete generated csv - crontab with script

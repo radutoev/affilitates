@@ -49,9 +49,9 @@ object Affiliate extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
     BlazeServerBuilder[IO]
-      .withIdleTimeout(1 minute)
-      .withResponseHeaderTimeout(1 minute)
-      .bindHttp(80, "0.0.0.0")
+      .withIdleTimeout(2 minutes)
+      .withResponseHeaderTimeout(2 minutes)
+      .bindHttp(8080, "0.0.0.0")
       .withHttpApp(new AffiliateRoutes(productsService, config).routes)
       .resource
       .use(_ => IO.never)
