@@ -4,6 +4,9 @@ import java.io.File
 
 import cats.effect.IO
 import org.scalatest.{FlatSpec, Matchers}
+import org.tzotopia.affiliate.Fs2Csv.Columns
+
+import scala.None
 
 class ProductsSpec extends FlatSpec with Matchers {
   private val lookupKey: String = "a"
@@ -74,5 +77,15 @@ class ProductsSpec extends FlatSpec with Matchers {
   it should "ensure value uniqueness" in {
     val input = "44|44|42.5|47|43|41.2|46|45|42"
     products.uniqueValues(input, "|").split("[|]") should contain allOf ("44", "42.5", "47", "43", "41.2", "46", "45", "42")
+  }
+
+  val columnsToSelect: (String, Vector[String]) => Option[Columns] = (uniqueCol, columnsToJoin) =>
+    columnsToJoin match {
+      case vector => None
+      case IndexedSeq() => None
+    }
+
+  "Columns selector" should "not form if no join columns are defined" in {
+    columnsToSelect("a", Vector.empty) should equal (None)
   }
 }

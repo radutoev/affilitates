@@ -3,7 +3,7 @@ package org.tzotopia.affiliate
 import fs2.{Pipe, RaiseThrowable, text}
 
 object Fs2Csv {
-  type Columns = Array[String]
+  type Columns = Vector[String]
 
   def parse[F[_]: RaiseThrowable](sep: String)(columns: Option[Columns]): Pipe[F, String, Map[String, String]] =
     parse(sep, columns, identity)
