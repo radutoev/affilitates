@@ -10,6 +10,7 @@ import org.http4s.{Header, HttpRoutes, Request, Response, StaticFile}
 import org.http4s.implicits._
 import org.http4s.dsl.io._
 import org.http4s.server.blaze.BlazeServerBuilder
+import zio.UIO
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -22,25 +23,26 @@ final class AffiliateRoutes(P: Products, C: AppConfig) {
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
   private implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  def routes: Kleisli[IO, Request[IO], Response[IO]] = HttpRoutes.of[IO] {
-    case request @ GET -> Root / affiliateName :? UniqueColumnQueryParamMatcher(uniqueColumn)
-      +& JoinOnQueryParamMatcher(joinOn)
-      +& ColumnsToJoinQueryParamMatcher(columnsToJoin) =>
-      for {
-        conf     <- C.affiliateConfig(affiliateName)
-        csv      <- P.processAffiliateResource (
-          affiliateName,
-          new URL(conf.right.get.url),
-          uniqueColumn,
-          columnsToJoin.split(",").map(_.toLowerCase).toVector,
-          joinOn.toCharArray.head
-        )
-        response <- StaticFile.fromFile(csv, blockingEc, Some(request)).getOrElseF(NotFound())
-      } yield response.withHeaders(
-        Header("Content-Type", "text/csv"),
-        Header("Content-Disposition", "attachment; filename=\"" + affiliateName + ".csv\"")
-      )
-  }.orNotFound
+  def routes: Kleisli[IO, Request[IO], Response[IO]] = ???
+//  HttpRoutes.of[IO] {
+//    case request @ GET -> Root / affiliateName :? UniqueColumnQueryParamMatcher(uniqueColumn)
+//      +& JoinOnQueryParamMatcher(joinOn)
+//      +& ColumnsToJoinQueryParamMatcher(columnsToJoin) =>
+//      for {
+//        conf     <- C.affiliateConfig(affiliateName)
+//        csv      <- P.processAffiliateResource (
+//          affiliateName,
+//          new URL(conf.url),
+//          uniqueColumn,
+//          columnsToJoin.split(",").map(_.toLowerCase).toVector,
+//          joinOn.toCharArray.head
+//        )
+//        response <- StaticFile.fromFile(csv, blockingEc, Some(request)).getOrElseF(NotFound())
+//      } yield response.withHeaders(
+//        Header("Content-Type", "text/csv"),
+//        Header("Content-Disposition", "attachment; filename=\"" + affiliateName + ".csv\"")
+//      )
+//  }.orNotFound
 }
 
 object Affiliate extends IOApp {

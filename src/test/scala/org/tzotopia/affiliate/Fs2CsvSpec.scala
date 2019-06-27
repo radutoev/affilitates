@@ -2,7 +2,6 @@ package org.tzotopia.affiliate
 
 import fs2.{Fallible, Stream}
 import org.scalatest.{EitherValues, FlatSpec, Matchers}
-import org.tzotopia.affiliate.Fs2Csv.{Columns, HeaderSizeMismatch}
 
 class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
   behavior of "parse"
@@ -16,33 +15,19 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
     val csvMaps = Stream
       .emit(csv)
       .covary[Fallible]
-      .through(Fs2Csv.parse(",")(Option.empty[Columns]))
+      .through(Fs2Csv.parse(",")())
       .toVector
       .right
       .value
+//    csvMaps shouldEqual Vector(
+//      Map("a" -> ("1", 0), "b" -> ("2", 1), "c" -> ("3", 2)),
+//      Map("a" -> ("4", 0), "b" -> ("5", 0), "c" -> ("6", 0))
+//    )
     csvMaps shouldEqual Vector(
       Map("a" -> "1", "b" -> "2", "c" -> "3"),
       Map("a" -> "4", "b" -> "5", "c" -> "6")
     )
   }
-
-//  it should "error on bad row alignment" in {
-//    val csv =
-//      """a,b,c
-//        |1,2,3
-//        |4,5
-//      """.stripMargin
-//
-//    a[HeaderSizeMismatch] shouldBe thrownBy {
-//      Stream
-//        .emit(csv)
-//        .covary[Fallible]
-//        .through(Fs2Csv.parse(","))
-//        .toVector
-//        .right
-//        .value
-//    }
-//  }
 
   it should "handle rows with leading empty columns" in {
     val rows =
@@ -53,7 +38,7 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
       Stream
         .emit(rows)
         .covary[Fallible]
-        .through(Fs2Csv.parse("\t")(Option.empty[Columns]))
+        .through(Fs2Csv.parse("\t")())
         .toVector
         .right
         .value
@@ -68,7 +53,7 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
       Stream
         .emit(rows)
         .covary[Fallible]
-        .through(Fs2Csv.parse("\t")(Option.empty[Columns]))
+        .through(Fs2Csv.parse("\t")())
         .toVector
         .right
         .value
@@ -83,13 +68,15 @@ class Fs2CsvSpec extends FlatSpec with Matchers with EitherValues {
     val csvMap = Stream
       .emit(csv)
       .covary[Fallible]
-      .through(Fs2Csv.parse(",")(Option.empty[Columns]))
+      .through(Fs2Csv.parse(",")())
       .toVector
       .right
       .value
       .head
 
     csvMap.keySet should contain("a")
+    csvMap.keySet should contain("b")
+    csvMap.keySet should contain("c")
     csvMap.keySet shouldNot contain("a ")
   }
 }

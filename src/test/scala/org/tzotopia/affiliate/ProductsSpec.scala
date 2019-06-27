@@ -2,18 +2,18 @@ package org.tzotopia.affiliate
 
 import java.io.File
 
-import cats.effect.IO
 import org.scalatest.{FlatSpec, Matchers}
-import org.tzotopia.affiliate.Fs2Csv.Columns
+import org.tzotopia.affiliate.Fs2Csv.ColumnNames
+import zio.{Task, UIO, ZIO}
 
 import scala.None
 
 class ProductsSpec extends FlatSpec with Matchers {
   private val lookupKey: String = "a"
   private val appConfig: AppConfig = new AppConfig {
-    override def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]] = IO.fromEither(Left(new RuntimeException("Not used")))
-    override def workdir: IO[File] = IO.pure(File.createTempFile("what", "ever"))
-    override def outputDir: IO[File] = IO.pure(File.createTempFile("what", "ever2"))
+    override def affiliateConfig(name: String):  Task[AffiliateConfig] = ZIO.fromEither(Left(new RuntimeException("Not used")))
+    override def workdir: UIO[File] = UIO(File.createTempFile("what", "ever"))
+    override def outputDir: UIO[File] = UIO(File.createTempFile("what", "ever2"))
   }
   private val products = new CsvProducts(appConfig)
 

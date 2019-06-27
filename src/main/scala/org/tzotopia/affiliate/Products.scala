@@ -1,14 +1,16 @@
 package org.tzotopia.affiliate
 
-import java.io.File
 import java.net.URL
 import java.util.UUID
 import java.util.concurrent.Executors
 
-import cats.effect.{ContextShift, IO}
+import better.files.File
+import better.files._
 import cats.implicits._
 import fs2.{io, text}
-import org.tzotopia.affiliate.Fs2Csv.Columns
+import org.tzotopia.affiliate.Fs2Csv.ColumnNames
+import zio.{IO, UIO}
+import zio.interop.catz._
 
 import scala.concurrent.ExecutionContext
 
@@ -17,46 +19,46 @@ trait Products {
                                url: URL,
                                uniqueColumn: String,
                                columnsToJoin: Vector[String],
-                               joinOn: Char): IO[File]
+                               joinOn: Char): UIO[File]
 }
 
 final class CsvProducts(C: AppConfig) extends Products {
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
-  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+//  implicit val cs: ContextShift[CatsIO] = CatsIO.contextShift(ExecutionContext.global)
 
   def processAffiliateResource(affiliateName: String,
                                url: URL,
                                uniqueColumn: String,
                                columnsToJoin: Vector[String],
-                               joinOn: Char): IO[File] =
-    for {
-      dir       <- C.workdir
-      outputDir <- C.outputDir
-      name      <- IO(UUID.randomUUID().toString)
-      gzip      = new File(dir,s"${name}.gz")
-      orig      = new File(dir,s"${name}.csv")
-      _         <- Files.readFromUrl(url, gzip)
-      _         <- Files.unpack(gzip, orig)
-      data      <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
-      dest      =  new File(outputDir,s"${name}.csv")
-      count     <- Files.writeToCsv(data, dest)
-      _         <- cleanupWorkDir(gzip, orig)
-    } yield dest
+                               joinOn: Char): UIO[File] = ???
+//    for {
+//      dir       <- C.workdir
+//      outputDir <- C.outputDir
+//      name      <- UIO(UUID.randomUUID().toString)
+//      gzip      = file"$dir/$name.gz"
+//      orig      = file"$dir/$name.csv"
+//      _         <- Files.readFromUrl(url, gzip)
+//      _         <- UIO(gzip.unGzipTo(orig))
+//      data      <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
+//      dest      =  file"$outputDir/$name.csv"
+//      count     <- Files.writeToCsv(data, dest)
+//      _         <- cleanupWorkDir(gzip, orig)
+//    } yield dest
 
   private[affiliate] def parseFile(file: File,
                                    uniqueColumn: String,
                                    columnsToJoin: Vector[String],
-                                   joinOn: Char): IO[List[String]] =
-    io.file.readAll[IO](file.toPath, blockingEc, 4096)
-      .through(text.utf8Decode)
-      .through(Fs2Csv.parse(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")(columnsToSelect(uniqueColumn, columnsToJoin)))
-      .noneTerminate
-      .compile
-      .toList
-      //out of the stream world.
-      .map(groupProducts(_, uniqueColumn)(columnsToJoin)(joinOn))
-      .map(transformToCsv)
+                                   joinOn: Char): UIO[List[String]] = ???
+//    io.file.readAll[IO](file.path, blockingEc, 4096)
+//      .through(text.utf8Decode)
+//      .through(Fs2Csv.parse(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")(columnsToSelect(uniqueColumn, columnsToJoin)))
+//      .noneTerminate
+//      .compile
+//      .toList
+//      //out of the stream world.
+//      .map(groupProducts(_, uniqueColumn)(columnsToJoin)(joinOn))
+//      .map(transformToCsv)
 
   private[affiliate] def groupProducts(productRows: List[Option[Map[String, String]]], lookup: String)
                                       (columnsToGroup: Vector[String] = Vector.empty)
@@ -113,15 +115,16 @@ final class CsvProducts(C: AppConfig) extends Products {
     })
   }
 
-  private[affiliate] val columnsToSelect: (String, Vector[String]) => Option[Columns] = (uniqueCol, columnsToJoin) =>
+  private[affiliate] val columnsToSelect: (String, Vector[String]) => Option[ColumnNames] = (uniqueCol, columnsToJoin) =>
     columnsToJoin match {
       case vector if vector.nonEmpty => Some(uniqueCol +: vector)
       case _ => None
     }
 
-  private def cleanupWorkDir(gzip: File, csv: File): IO[Unit] = IO {
-    gzip.delete()
-    csv.delete()
-    println("Cleanup complete")
-  }
+  private def cleanupWorkDir(gzip: File, csv: File): UIO[Unit] =
+    for {
+      _ <- UIO(gzip.delete())
+      _ <- UIO(csv.delete())
+      _ <- UIO(println("Cleanup complete"))
+    } yield Unit
 }
