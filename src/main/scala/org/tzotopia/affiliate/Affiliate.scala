@@ -48,17 +48,22 @@ final class AffiliateRoutes(P: Products, C: AppConfig) {
 }
 
 object Affiliate extends IOApp {
+  private val blockingEc = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool)
+
   val config = new PureConfig
   val productsService = new CsvProducts(config)
 
-  override def run(args: List[String]): IO[ExitCode] = {
-    //every 5 seconds
-    val cron = Cron.unsafeParse("*/5 * * ? * *")
+  def cronInit: IO[Unit] = IO {
+    //every 2 seconds
+    val cron = Cron.unsafeParse("*/2 * * ? * *")
     val printTime = Stream.eval(IO(println(LocalTime.now)))
     val scheduled = awakeEveryCron[IO](cron) >> printTime
     scheduled.compile.drain.unsafeRunSync()
+  }
 
-    BlazeServerBuilder[IO]
+  override def run(args: List[String]): IO[ExitCode] = {
+    val cron: IO[Unit] = contextShift.evalOn(blockingEc)(cronInit) //executes on blockingEc
+    val server: IO[ExitCode] = BlazeServerBuilder[IO]
       .withIdleTimeout(2 minutes)
       .withResponseHeaderTimeout(2 minutes)
       .bindHttp(8080, "0.0.0.0")
@@ -66,5 +71,10 @@ object Affiliate extends IOApp {
       .resource
       .use(_ => IO.never)
       .as(ExitCode.Success)
+
+    for {
+      _        <- cron
+      exitCode <- server
+    } yield exitCode
   }
 }
