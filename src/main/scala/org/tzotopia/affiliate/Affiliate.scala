@@ -1,11 +1,15 @@
 package org.tzotopia.affiliate
 
 import java.net.URL
+import java.time.LocalTime
 import java.util.concurrent.Executors
 
 import cats.data.Kleisli
 import cats.effect.{ContextShift, ExitCode, IO, IOApp}
 import cats.implicits._
+import cron4s.Cron
+import eu.timepit.fs2cron.awakeEveryCron
+import fs2._
 import org.http4s.{Header, HttpRoutes, Request, Response, StaticFile}
 import org.http4s.implicits._
 import org.http4s.dsl.io._
@@ -48,6 +52,12 @@ object Affiliate extends IOApp {
   val productsService = new CsvProducts(config)
 
   override def run(args: List[String]): IO[ExitCode] = {
+    //every 5 seconds
+    val cron = Cron.unsafeParse("*/5 * * ? * *")
+    val printTime = Stream.eval(IO(println(LocalTime.now)))
+    val scheduled = awakeEveryCron[IO](cron) >> printTime
+    scheduled.compile.drain.unsafeRunSync()
+
     BlazeServerBuilder[IO]
       .withIdleTimeout(2 minutes)
       .withResponseHeaderTimeout(2 minutes)
