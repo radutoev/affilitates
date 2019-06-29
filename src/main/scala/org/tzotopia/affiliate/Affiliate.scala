@@ -62,8 +62,21 @@ object Affiliate extends IOApp {
     //every 2 seconds
     val cron = Cron.unsafeParse("* */2 * ? * *")
     val printTime = Stream.eval(IO(println(LocalTime.now)))
-//    val generateAffiliateCsvs = Stream.eval(config.affiliateNames.flatMap(names => names.foreach()))
-    val scheduled = awakeEveryCron[IO](cron) >> printTime
+    val generateAffiliateCSVs = Stream.eval(IO(config.affiliateNames.map(names => names.map(name => {
+      for {
+        conf <- config.affiliateConfig(name)
+        _    <- IO(println(s"Processing for $name"))
+        _    <- productsService.processAffiliateResource (
+          name,
+          new URL(conf.right.get.url),
+          conf.right.get.params.uniqueColumn,
+          conf.right.get.params.columnsToJoin.split(",").map(_.toLowerCase).toVector,
+          conf.right.get.params.joinOn.toCharArray.head
+        )
+      } yield ()
+    }))))
+
+    val scheduled = awakeEveryCron[IO](cron) >> printTime >> generateAffiliateCSVs
     scheduled.compile.drain.unsafeRunSync()
   }
 
