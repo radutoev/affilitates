@@ -60,8 +60,9 @@ object Affiliate extends IOApp {
 
   def cronInit: IO[Unit] = IO {
     //every 2 seconds
-    val cron = Cron.unsafeParse("*/2 * * ? * *")
+    val cron = Cron.unsafeParse("* */2 * ? * *")
     val printTime = Stream.eval(IO(println(LocalTime.now)))
+//    val generateAffiliateCsvs = Stream.eval(config.affiliateNames.flatMap(names => names.foreach()))
     val scheduled = awakeEveryCron[IO](cron) >> printTime
     scheduled.compile.drain.unsafeRunSync()
   }

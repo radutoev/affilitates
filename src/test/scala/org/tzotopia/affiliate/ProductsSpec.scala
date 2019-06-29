@@ -11,6 +11,7 @@ class ProductsSpec extends FlatSpec with Matchers {
     override def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]] = IO.fromEither(Left(new RuntimeException("Not used")))
     override def workdir: IO[File] = IO.pure(File.createTempFile("what", "ever"))
     override def outputDir: IO[File] = IO.pure(File.createTempFile("what", "ever2"))
+    override def affiliateNames: IO[Set[String]] = ???
   }
   private val products = new CsvProducts(appConfig)
 
