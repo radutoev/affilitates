@@ -1,9 +1,7 @@
 package org.tzotopia.affiliate
 
-import java.io.File
 import java.net.URL
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 
 import cats.data.Kleisli
@@ -79,9 +77,8 @@ object Affiliate extends IOApp {
       .use(_ => IO.never)
       .as(ExitCode.Success)
 
-    for {
-      exitCode <- server
-      _        <- cron
-    } yield exitCode
+    List(cron, server).parSequence.unsafeRunSync()
+
+    server
   }
 }
