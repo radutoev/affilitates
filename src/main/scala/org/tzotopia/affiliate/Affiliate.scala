@@ -1,11 +1,13 @@
 package org.tzotopia.affiliate
 
+import java.io.File
 import java.net.URL
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 
 import cats.data.Kleisli
-import cats.effect.{ContextShift, ExitCode, IO, IOApp}
+import cats.effect.{Clock, ContextShift, ExitCode, IO, IOApp}
 import cats.implicits._
 import cron4s.Cron
 import eu.timepit.fs2cron.awakeEveryCron
@@ -24,26 +26,31 @@ final class AffiliateRoutes(P: Products, C: AppConfig) {
   object ColumnsToJoinQueryParamMatcher extends QueryParamDecoderMatcher[String](name = "columnsToJoin")
 
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
-  private implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  implicit val clock: Clock[IO] = Clock.create[IO]
 
   def routes: Kleisli[IO, Request[IO], Response[IO]] = HttpRoutes.of[IO] {
     case request @ GET -> Root / affiliateName :? UniqueColumnQueryParamMatcher(uniqueColumn)
       +& JoinOnQueryParamMatcher(joinOn)
       +& ColumnsToJoinQueryParamMatcher(columnsToJoin) =>
+
       for {
         conf     <- C.affiliateConfig(affiliateName)
-        csv      <- P.processAffiliateResource (
+        maybeCsv <- P.getCsvForAffiliate(affiliateName)
+        csv      <- maybeCsv.fold(P.processAffiliateResource (
           affiliateName,
           new URL(conf.right.get.url),
           uniqueColumn,
           columnsToJoin.split(",").map(_.toLowerCase).toVector,
           joinOn.toCharArray.head
-        )
+        ))(IO(_))
         response <- StaticFile.fromFile(csv, blockingEc, Some(request)).getOrElseF(NotFound())
       } yield response.withHeaders(
         Header("Content-Type", "text/csv"),
         Header("Content-Disposition", "attachment; filename=\"" + affiliateName + ".csv\"")
       )
+
+
   }.orNotFound
 }
 
@@ -73,8 +80,8 @@ object Affiliate extends IOApp {
       .as(ExitCode.Success)
 
     for {
-      _        <- cron
       exitCode <- server
+      _        <- cron
     } yield exitCode
   }
 }

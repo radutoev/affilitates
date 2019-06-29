@@ -2,10 +2,12 @@ package org.tzotopia.affiliate
 
 import java.io.File
 import java.net.URL
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneId}
 import java.util.UUID
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, TimeUnit}
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.{Clock, ContextShift, IO, Sync}
 import cats.implicits._
 import fs2.{io, text}
 import org.tzotopia.affiliate.Fs2Csv.Columns
@@ -13,6 +15,9 @@ import org.tzotopia.affiliate.Fs2Csv.Columns
 import scala.concurrent.ExecutionContext
 
 trait Products {
+  def getCsvForAffiliate(affiliateName: String)
+                        (implicit F: Sync[IO], clock: Clock[IO]): IO[Option[File]]
+
   def processAffiliateResource(affiliateName: String,
                                url: URL,
                                uniqueColumn: String,
@@ -21,11 +26,22 @@ trait Products {
 }
 
 final class CsvProducts(C: AppConfig) extends Products {
+  private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
-
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  def processAffiliateResource(affiliateName: String,
+  override def getCsvForAffiliate(affiliateName: String)
+                                 (implicit F: Sync[IO], clock: Clock[IO]): IO[Option[File]] =
+    for {
+      now       <- clock.realTime(TimeUnit.MILLISECONDS)
+                      .map(Instant.ofEpochMilli(_).atZone(ZoneId.systemDefault()).toLocalDate())
+      currenDay <- IO(now.format(dateFormatter))
+      outputDir <- C.outputDir
+      file      <- IO(new File(outputDir, affiliateName + "-" + currenDay + ".csv"))
+      maybeCsv  <- IO { if(file.exists()) Some(file) else None }
+    } yield maybeCsv
+
+  override def processAffiliateResource(affiliateName: String,
                                url: URL,
                                uniqueColumn: String,
                                columnsToJoin: Vector[String],
