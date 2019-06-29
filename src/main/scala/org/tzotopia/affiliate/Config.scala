@@ -40,7 +40,7 @@ trait AppConfig {
   def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]]
   def workdir: IO[File]
   def outputDir: IO[File]
-  def affiliateNames: IO[Set[String]]
+  def affiliateNames: Iterable[String]
 }
 
 final class PureConfig extends AppConfig {
@@ -56,5 +56,5 @@ final class PureConfig extends AppConfig {
 
   override def outputDir: IO[File] = config.map(_.outputDir)
 
-  override def affiliateNames: IO[Set[String]] = config.map(_.affiliates.keySet)
+  override def affiliateNames: Iterable[String] = config.map(c => c.affiliates.keys).unsafeRunSync()
 }

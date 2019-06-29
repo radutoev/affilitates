@@ -1,7 +1,6 @@
 package org.tzotopia.affiliate
 
 import java.net.URL
-import java.time.LocalTime
 import java.util.concurrent.Executors
 
 import cats.data.Kleisli
@@ -60,23 +59,23 @@ object Affiliate extends IOApp {
 
   def cronInit: IO[Unit] = IO {
     //every 2 seconds
-    val cron = Cron.unsafeParse("* */2 * ? * *")
-    val printTime = Stream.eval(IO(println(LocalTime.now)))
-    val generateAffiliateCSVs = Stream.eval(IO(config.affiliateNames.map(names => names.map(name => {
-      for {
-        conf <- config.affiliateConfig(name)
-        _    <- IO(println(s"Processing for $name"))
-        _    <- productsService.processAffiliateResource (
-          name,
-          new URL(conf.right.get.url),
-          conf.right.get.params.uniqueColumn,
-          conf.right.get.params.columnsToJoin.split(",").map(_.toLowerCase).toVector,
-          conf.right.get.params.joinOn.toCharArray.head
-        )
-      } yield ()
-    }))))
+    val cron = Cron.unsafeParse("* */2 * ? * *") //0 1 * * * -> every day at 1 am.
 
-    val scheduled = awakeEveryCron[IO](cron) >> printTime >> generateAffiliateCSVs
+    val scheduled = awakeEveryCron[IO](cron) >> Stream.emits(config.affiliateNames.toSeq)
+      .evalMap { name =>
+        for {
+          _     <- IO(println(s"Processing for $name"))
+          conf  <- config.affiliateConfig(name)
+          file  <- productsService.processAffiliateResource (
+            name,
+            new URL(conf.right.get.url),
+            conf.right.get.params.uniqueColumn,
+            conf.right.get.params.columnsToJoin.split(",").map(_.toLowerCase).toVector,
+            conf.right.get.params.joinOn.toCharArray.head
+          )
+        } yield file
+      }
+
     scheduled.compile.drain.unsafeRunSync()
   }
 

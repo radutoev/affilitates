@@ -22,7 +22,8 @@ trait Products {
                                url: URL,
                                uniqueColumn: String,
                                columnsToJoin: Vector[String],
-                               joinOn: Char): IO[File]
+                               joinOn: Char)
+                              (implicit F: Sync[IO], clock: Clock[IO]): IO[File]
 }
 
 final class CsvProducts(C: AppConfig) extends Products {
@@ -33,31 +34,34 @@ final class CsvProducts(C: AppConfig) extends Products {
   override def getCsvForAffiliate(affiliateName: String)
                                  (implicit F: Sync[IO], clock: Clock[IO]): IO[Option[File]] =
     for {
-      now       <- clock.realTime(TimeUnit.MILLISECONDS)
+      now        <- clock.realTime(TimeUnit.MILLISECONDS)
                       .map(Instant.ofEpochMilli(_).atZone(ZoneId.systemDefault()).toLocalDate())
-      currenDay <- IO(now.format(dateFormatter))
-      outputDir <- C.outputDir
-      file      <- IO(new File(outputDir, affiliateName + "-" + currenDay + ".csv"))
-      maybeCsv  <- IO { if(file.exists()) Some(file) else None }
+      currentDay <- IO(now.format(dateFormatter))
+      outputDir  <- C.outputDir
+      file       <- IO(new File(outputDir, affiliateName + "-" + currentDay + ".csv"))
+      maybeCsv   <- IO { if(file.exists()) Some(file) else None }
     } yield maybeCsv
 
   override def processAffiliateResource(affiliateName: String,
                                url: URL,
                                uniqueColumn: String,
                                columnsToJoin: Vector[String],
-                               joinOn: Char): IO[File] =
+                               joinOn: Char)
+                               (implicit F: Sync[IO], clock: Clock[IO]): IO[File] =
     for {
-      dir       <- C.workdir
-      outputDir <- C.outputDir
-      name      <- IO(UUID.randomUUID().toString)
-      gzip      = new File(dir,s"${name}.gz")
-      orig      = new File(dir,s"${name}.csv")
-      _         <- Files.readFromUrl(url, gzip)
-      _         <- Files.unpack(gzip, orig)
-      data      <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
-      dest      =  new File(outputDir,s"${name}.csv")
-      count     <- Files.writeToCsv(data, dest)
-      _         <- cleanupWorkDir(gzip, orig)
+      dir        <- C.workdir
+      outputDir  <- C.outputDir
+      now        <- clock.realTime(TimeUnit.MILLISECONDS).map(Instant.ofEpochMilli(_).atZone(ZoneId.systemDefault()).toLocalDate())
+      currentDay <- IO(now.format(dateFormatter))
+      name       <- IO(affiliateName + "-" + currentDay)
+      gzip       = new File(dir,s"${name}.gz")
+      orig       = new File(dir,s"${name}.csv")
+      _          <- Files.readFromUrl(url, gzip)
+      _          <- Files.unpack(gzip, orig)
+      data       <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
+      dest       =  new File(outputDir,s"${name}.csv")
+      _          <- Files.writeToCsv(data, dest)
+      _          <- cleanupWorkDir(gzip, orig)
     } yield dest
 
   private[affiliate] def parseFile(file: File,
