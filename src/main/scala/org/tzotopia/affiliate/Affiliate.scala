@@ -59,7 +59,7 @@ object Affiliate extends IOApp {
 
   def cronInit: IO[Unit] = IO {
     //every 2 seconds
-    val cron = Cron.unsafeParse("0 33 * ? * *") //0 1 * * * * -> every day at 1 am.
+    val cron = Cron.unsafeParse("0 41 23 ? * *")
 
     val scheduled = awakeEveryCron[IO](cron) >> Stream.emits(config.affiliateNames.toSeq)
       .evalMap { name =>
