@@ -105,7 +105,7 @@ final class CsvProducts(C: AppConfig) extends Products {
 
 
   private[affiliate] val makeNrColumn: String => String = colValue =>
-    colValue replaceAll ("\\d[/]\\d[M]", "") replaceAll("[ ]", "") replaceAll("\\b(\\d{1,3})([a-zA-Z])\\b", "$1")
+    colValue replaceAll ("\\d[/]\\d[M]", "") replaceAll("[ ]", "") replaceAll("\\b(\\d{1,3})([a-zA-Z])\\b", "$1") replaceAll("\"", "")
 
   private [affiliate] val uniqueValues: (String, String) => String = (colValue, sep) =>
     colValue.split(s"[$sep]").toSet.mkString(sep)
