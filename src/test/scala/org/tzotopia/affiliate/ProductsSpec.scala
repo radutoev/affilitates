@@ -2,18 +2,16 @@ package org.tzotopia.affiliate
 
 import java.io.File
 
+import cats.effect.IO
 import org.scalatest.{FlatSpec, Matchers}
-import org.tzotopia.affiliate.Fs2Csv.ColumnNames
-import zio.{Task, UIO, ZIO}
-
-import scala.None
 
 class ProductsSpec extends FlatSpec with Matchers {
   private val lookupKey: String = "a"
   private val appConfig: AppConfig = new AppConfig {
-    override def affiliateConfig(name: String):  Task[AffiliateConfig] = ZIO.fromEither(Left(new RuntimeException("Not used")))
-    override def workdir: UIO[File] = UIO(File.createTempFile("what", "ever"))
-    override def outputDir: UIO[File] = UIO(File.createTempFile("what", "ever2"))
+    override def affiliateConfig(name: String): IO[Either[Throwable, AffiliateConfig]] = IO.fromEither(Left(new RuntimeException("Not used")))
+    override def workdir: IO[File] = IO.pure(File.createTempFile("what", "ever"))
+    override def outputDir: IO[File] = IO.pure(File.createTempFile("what", "ever2"))
+    override def affiliateNames: Set[String] = ???
   }
   private val products = new CsvProducts(appConfig)
 
@@ -77,13 +75,5 @@ class ProductsSpec extends FlatSpec with Matchers {
   it should "ensure value uniqueness" in {
     val input = "44|44|42.5|47|43|41.2|46|45|42"
     products.uniqueValues(input, "|").split("[|]") should contain allOf ("44", "42.5", "47", "43", "41.2", "46", "45", "42")
-  }
-
-  "Columns selector" should "not form if no join columns are defined" in {
-    products.columnsToSelect("a", Vector.empty) should equal (None)
-  }
-
-  it should "return columns if both join columns and unique key are provided" in {
-    products.columnsToSelect("a", Vector("b", "c")) should equal (Some(Vector("a", "b", "c")))
   }
 }

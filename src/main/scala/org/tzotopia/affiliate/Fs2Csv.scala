@@ -40,7 +40,7 @@ object Fs2Csv {
             (Some(headerRow), Right(Map.empty[String, String]))
           case (h @ Some(header), (row, rowIndex)) =>
             if (header.length == row.length)
-              h -> Right(header.zip(row).toMap)
+              h -> Right(header.map(h => if(h.startsWith("\"") && h.endsWith("\"")) h.drop(1).dropRight(1) else h).zip(row).toMap)
             else
               h -> Left(HeaderSizeMismatch(rowIndex, header.length, row))
         }

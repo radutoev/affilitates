@@ -1,9 +1,9 @@
-Todo
+1. Afiliatii noi
 
-[x] test from my computer, see if cors is required
+2. Specific columns for each affiliate. 
 
-[x] deploy on VM 
+3. Cron job 
 
-[x] map out all links
+4. Return generate csv or generate on the fly
 
-[ ] delete generated csv - crontab with script
+5. Bonus - improve processing algorithm 
