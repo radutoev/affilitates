@@ -4,7 +4,7 @@ import java.net.URL
 import java.util.concurrent.Executors
 
 import cats.data.Kleisli
-import cats.effect.{Clock, ContextShift, ExitCode, IO, IOApp}
+import cats.effect.{Clock, ContextShift, ExitCode, IO, IOApp, Timer}
 import cats.implicits._
 import cron4s.Cron
 import eu.timepit.fs2cron.awakeEveryCron
@@ -25,6 +25,7 @@ final class AffiliateRoutes(P: Products, C: AppConfig) {
   private val blockingEc = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit val clock: Clock[IO] = Clock.create[IO]
+  implicit val timer: Timer[IO] = IO.timer(ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2)))
 
   def routes: Kleisli[IO, Request[IO], Response[IO]] = HttpRoutes.of[IO] {
     case request @ GET -> Root / affiliateName :? UniqueColumnQueryParamMatcher(uniqueColumn)

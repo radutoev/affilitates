@@ -7,12 +7,14 @@ import java.time.{Instant, ZoneId}
 import java.util.UUID
 import java.util.concurrent.{Executors, TimeUnit}
 
-import cats.effect.{Clock, ContextShift, IO, Sync}
+import cats.effect.{Clock, ContextShift, IO, Sync, Timer}
 import cats.implicits._
 import fs2.{io, text}
 import org.tzotopia.affiliate.Fs2Csv.Columns
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
 trait Products {
   def getCsvForAffiliate(affiliateName: String)
@@ -23,7 +25,7 @@ trait Products {
                                uniqueColumn: String,
                                columnsToJoin: Vector[String],
                                joinOn: Char)
-                              (implicit F: Sync[IO], clock: Clock[IO]): IO[File]
+                              (implicit F: Sync[IO], clock: Clock[IO], timer: Timer[IO]): IO[File]
 }
 
 final class CsvProducts(C: AppConfig) extends Products {
@@ -43,11 +45,11 @@ final class CsvProducts(C: AppConfig) extends Products {
     } yield maybeCsv
 
   override def processAffiliateResource(affiliateName: String,
-                               url: URL,
-                               uniqueColumn: String,
-                               columnsToJoin: Vector[String],
-                               joinOn: Char)
-                               (implicit F: Sync[IO], clock: Clock[IO]): IO[File] =
+                                        url: URL,
+                                        uniqueColumn: String,
+                                        columnsToJoin: Vector[String],
+                                        joinOn: Char)
+                                        (implicit F: Sync[IO], clock: Clock[IO], timer: Timer[IO]): IO[File] =
     for {
       dir        <- C.workdir
       outputDir  <- C.outputDir
@@ -56,13 +58,27 @@ final class CsvProducts(C: AppConfig) extends Products {
       name       <- IO(affiliateName + "-" + currentDay)
       gzip       = new File(dir,s"${name}.gz")
       orig       = new File(dir,s"${name}.csv")
-      _          <- Files.readFromUrl(url, gzip).handleErrorWith(err => IO.raiseError(err))
+      _          <- retryWithBackoff(
+        Files.readFromUrl(url, gzip).handleErrorWith(err => IO.raiseError(err)),
+        5 seconds,
+        2
+      )
       _          <- Files.unpack(gzip, orig)
       data       <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
       dest       =  new File(outputDir,s"${name}.csv")
       _          <- Files.writeToCsv(data, dest)
       _          <- cleanupWorkDir(gzip, orig)
     } yield dest
+
+  private[affiliate] def retryWithBackoff[A](ioa: IO[A], initialDelay: FiniteDuration, maxRetries: Int)
+                                            (implicit timer: Timer[IO]): IO[A] = {
+    ioa.handleErrorWith { error =>
+      if (maxRetries > 0)
+        IO.sleep(initialDelay) *> IO { println("Retrying affiliate request") } *>  retryWithBackoff(ioa, initialDelay * 2, maxRetries - 1)
+      else
+        IO.raiseError(error)
+    }
+  }
 
   private[affiliate] def parseFile(file: File,
                                    uniqueColumn: String,
