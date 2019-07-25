@@ -56,7 +56,7 @@ final class CsvProducts(C: AppConfig) extends Products {
       name       <- IO(affiliateName + "-" + currentDay)
       gzip       = new File(dir,s"${name}.gz")
       orig       = new File(dir,s"${name}.csv")
-      _          <- Files.readFromUrl(url, gzip)
+      _          <- Files.readFromUrl(url, gzip).handleErrorWith(err => IO.raiseError(err))
       _          <- Files.unpack(gzip, orig)
       data       <- parseFile(orig, uniqueColumn, columnsToJoin, joinOn)
       dest       =  new File(outputDir,s"${name}.csv")

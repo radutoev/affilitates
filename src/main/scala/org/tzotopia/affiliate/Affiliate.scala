@@ -89,7 +89,9 @@ object Affiliate extends IOApp {
       .use(_ => IO.never)
       .as(ExitCode.Success)
 
-    List(cron, server).parSequence.unsafeRunSync()
+//    List(cron, server).parSequence.unsafeRunSync()
+
+    List(server).parSequence.unsafeRunSync()
 
     server
   }
